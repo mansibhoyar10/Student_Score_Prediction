@@ -1,60 +1,55 @@
 import os
 import pickle
 import numpy as np
-from flask import Flask, request, jsonify
+import streamlit as st
 
-app = Flask(__name__)
+# Set page configuration
+st.set_page_config(page_title="Student Performance Predictor", layout="centered")
 
-# Define the expected model file path
+# App Header
+st.title("🎓 Student Performance Predictor")
+st.write("Enter the student details below to estimate the final score.")
+
 MODEL_PATH = 'model(1).pkl'
 
-# Load the model at startup
-if os.path.exists(MODEL_PATH):
-    with open(MODEL_PATH, 'rb') as f:
-        model = pickle.load(f)
-else:
-    raise FileNotFoundError(f"Could not find '{MODEL_PATH}'. Please ensure your model pkl file is in the same directory.")
+# Load the model safely
+@st.cache_resource
+def load_model():
+    if os.path.exists(MODEL_PATH):
+        with open(MODEL_PATH, 'rb') as f:
+            return pickle.load(f)
+    else:
+        st.error(f"Could not find '{MODEL_PATH}'. Please ensure your model pkl file is in the same directory.")
+        return None
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        # Parse the incoming JSON request
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No input data provided. Expected a JSON object.'}), 400
+model = load_model()
 
-        # Define the expected features based on the model metadata
-        required_features = ['hours_studied', 'sleep_hours', 'attendance_percent', 'previous_scores']
+if model is not None:
+    # Create inputs for the 4 expected features
+    st.header("📋 Input Features")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        hours_studied = st.number_input("Hours Studied", min_value=0.0, max_value=24.0, value=5.0, step=0.5)
+        sleep_hours = st.number_input("Sleep Hours", min_value=0.0, max_value=24.0, value=7.0, step=0.5)
         
-        # Validate that all features are present
-        missing_features = [feat for feat in required_features if feat not in data]
-        if missing_features:
-            return jsonify({'error': f'Missing features in request: {missing_features}'}), 400
-
-        # Extract values in the exact order the model expects
-        features = [
-            float(data['hours_studied']),
-            float(data['sleep_hours']),
-            float(data['attendance_percent']),
-            float(data['previous_scores'])
-        ]
-
-        # Convert to a 2D array shape for the scikit-learn model
-        input_array = np.array([features])
-
-        # Make prediction
-        prediction = model.predict(input_array)
-
-        # Return the result as JSON (extracting the first scalar from the array output)
-        return jsonify({
-            'prediction': float(prediction[0])
-        })
-
-    except ValueError as val_err:
-        return jsonify({'error': f'Invalid value type: {str(val_err)}. Values must be numbers.'}), 400
-    except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-if __name__ == '__main__':
-    # Run the Flask app on localhost port 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    with col2:
+        attendance_percent = st.slider("Attendance Percent", min_value=0.0, max_value=100.0, value=85.0, step=1.0)
+        previous_scores = st.number_input("Previous Scores", min_value=0.0, max_value=100.0, value=75.0, step=1.0)
+        
+    st.markdown("---")
+    
+    # Predict button
+    if st.button("🔮 Predict Score", type="primary"):
+        # Format the inputs exactly in the order the model expects
+        features = np.array([[hours_studied, sleep_hours, attendance_percent, previous_scores]])
+        
+        # Run prediction
+        try:
+            prediction = model.predict(features)
+            
+            # Display results
+            st.success(f"### Predicted Result: **{prediction[0]:.2f}**")
+        except Exception as e:
+            st.error(f"An error occurred during prediction: {e}")
