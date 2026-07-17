@@ -10,7 +10,7 @@ st.set_page_config(page_title="Student Performance Predictor", layout="centered"
 st.title("🎓 Student Performance Predictor")
 st.write("Enter the student details below to estimate the final score.")
 
-MODEL_PATH = 'model(1).pkl'
+MODEL_PATH = 'model.pkl'
 
 # Load the model safely
 @st.cache_resource
