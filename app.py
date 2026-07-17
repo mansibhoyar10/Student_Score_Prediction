@@ -151,10 +151,13 @@ else:
         name='Student Profile'
     ))
     
-    fig.update_layout(
+fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, 100], color="#9CA3AF"),
-            angularaxis=dict(color="#1E1B4B", font=dict(size=14, family="Arial"))
+            angularaxis=dict(
+                color="#1E1B4B", 
+                tickfont=dict(size=14, family="Arial")  # Fixed: using tickfont specifically
+            )
         ),
         showlegend=False,
         margin=dict(l=40, r=40, t=20, b=40),
